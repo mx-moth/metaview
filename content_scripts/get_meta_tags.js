@@ -14,9 +14,9 @@
 	// Convert an Attr to a [name, value] pair
 	const attrToPair = (attr) => [attr.name, attr.value];
 	// Convert an element to an object of its attributes, {key: value, ...}.
-	const elToAttrs = (el) => obj(Array.map(el.attributes, attrToPair));
+	const elToAttrs = (el) => obj(Array.from(el.attributes).map(attrToPair));
 	// Convert an iterable of elements to a list of element attributes
-	const elsToAttrs = (els) => Array.map(els, elToAttrs);
+	const elsToAttrs = (els) => Array.from(els).map(elToAttrs);
 
 	return elsToAttrs(els);
 })(document.querySelector('head').querySelectorAll('meta'));

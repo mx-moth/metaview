@@ -330,7 +330,7 @@ class Tabs extends RenderableMixin(Object) {
  * ``no`` contains all the other elements.
  */
 function partition(arr, pred) {
-	return Array.reduce(arr, function(base, item) {
+	return Array.from(arr).reduce(function(base, item) {
 		let {yes, no} = base;
 		if (pred(item)) {
 			yes.push(item);
