@@ -1,4 +1,4 @@
-# <img src="icons/share.svg" height="24"> Metaview
+# <img src="assets/logo-32.png"> Metaview
 
 ![Demo](assets/demo.png)
 
@@ -23,3 +23,18 @@ Metaview uses the BSD 3-clause license.
 ## Attribution
 
 All icons are from [Fontawesome](https://fontawesome.com/), licensed under the [CC BY 4.0 License](https://fontawesome.com/license).
+
+The PNG icons for the logo are generated from the ``share.svg`` icon using:
+
+```bash
+for size in 16 32 48 96 ; do
+    out="assets/logo-$size.png" ;
+    inkscape -z -e "$out" -h $size icons/share.svg ;
+    gm convert "$out" \
+        -thumbnail "${size}x${size}>" \
+        -background transparent \
+        -gravity center \
+        -extent "${size}x${size}" \
+        "$out" ;
+done
+```
