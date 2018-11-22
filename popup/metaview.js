@@ -2,7 +2,16 @@
 const popup = document.getElementById('popup-content');
 
 var RenderableMixin = Base => class extends Base {
+
+	/**
+	 * Render this widget in to a new element and return it.
+	 */
 	render() { throw new Error("Not implemented"); }
+
+	/**
+	 * Get the content for this widget, using the cached content if it has been
+	 * rendered before, or rendering it fresh using ``render()`` if not.
+	 */
 	getContent() {
 		if (this.el) {
 			return this.el;
@@ -10,15 +19,24 @@ var RenderableMixin = Base => class extends Base {
 		return (this.el = this.render());
 	}
 
+	/**
+	 * Mount this component within another element by appending the rendered
+	 * content.
+	 */
 	mount(parent) {
 		parent.appendChild(this.getContent());
 		return this;
 	}
+
+	/**
+	 * Remove this widget from the DOM.
+	 */
 	dismount() {
 		const el = this.getContent();
 		if (el.parentNode) {
 			el.parentNode.removeChild(this.el);
 		}
+		return this;
 	}
 }
 
@@ -30,15 +48,18 @@ class MetatagFamily extends RenderableMixin(Object) {
 	}
 
 	static handles(tag) { return False; }
+
 	static tabInfo() { throw new Error("Not implemented"); }
 	tab() {
 		return Object.assign({
 			content: this,
 		}, this.constructor.tabInfo());
 	}
+
 	render() {
 		return el('div', {children: [this.constructor.tabInfo().name]});
 	}
+
 	renderHTMLTag(name, attrs) {
 		const attrBits = Object.entries(attrs).reduce((base, bits) => {
 			let name = bits[0];
@@ -56,6 +77,7 @@ class MetatagFamily extends RenderableMixin(Object) {
 			children: [].concat(['<', name], attrBits, ['>']),
 		});
 	}
+
 	renderTagTable(tags, name, content) {
 		name = (name || 'name');
 		content = (content || 'content');
@@ -104,7 +126,7 @@ class FacebookTags extends MetatagFamily {
 		return {
 			id: 'facebook',
 			name: 'Facebook',
-			icon: '/icons/facebook-f.svg',
+			icon: 'facebook-f.svg',
 		};
 	}
 
@@ -117,6 +139,7 @@ class FacebookTags extends MetatagFamily {
 			],
 		})
 	}
+
 	renderCard() {
 		if (Object.keys(this.knownTags).length == 0) {
 			return null;
@@ -171,7 +194,7 @@ class TwitterTags extends MetatagFamily {
 		return {
 			id: 'twitter',
 			name: 'Twitter',
-			icon: '/icons/twitter.svg',
+			icon: 'twitter.svg',
 		};
 	}
 
@@ -184,6 +207,7 @@ class TwitterTags extends MetatagFamily {
 			],
 		})
 	}
+
 	renderCard() {
 		if (Object.keys(this.knownTags).length == 0) {
 			return null;
@@ -218,7 +242,7 @@ class OtherTags extends MetatagFamily {
 		return {
 			id: 'other',
 			name: 'Other meta tags',
-			icon: '/icons/share.svg',
+			icon: 'share.svg',
 		};
 	}
 
@@ -290,7 +314,7 @@ class Tabs extends RenderableMixin(Object) {
 	makeTab(tab, opts) {
 		tab.tab = el('div', Object.assign({
 			classList: 'tabs--tab',
-			children: [inlineSvg(tab.icon, 'tabs--icon')],
+			children: [inlineSvg('/assets/icons/' + tab.icon, 'tabs--icon')],
 			attrs: {'title': tab.name},
 		}, opts));
 		return tab.tab;
@@ -300,6 +324,7 @@ class Tabs extends RenderableMixin(Object) {
 		Object.assign(this.tabState, state);
 		browser.storage.local.set({'tabState': state})
 	}
+
 	static fetchTabState() {
 		return browser.storage.local
 			.get('tabState')
@@ -342,11 +367,17 @@ function partition(arr, pred) {
 }
 
 
+/**
+ * Construct a text node.
+ */
 function txt(content) {
 	return document.createTextNode(content);
 }
 
 
+/**
+ * Construct an element with (optional) class name, children, and attributes.
+ */
 function el(name, opts) {
 	const element = document.createElement(name);
 
@@ -378,28 +409,33 @@ function el(name, opts) {
 }
 
 
+/**
+ * Create an element that will be filled with an inline SVG image bundled with
+ * the addon. This SVG image is fetched asynchronously.
+ */
 function inlineSvg(url, classList) {
 	var wrapper = el('span', {classList: (classList || 'svg')});
 	fetch(browser.runtime.getURL(url))
 		.then((response) => response.text())
-		.then((content) => wrapper.innerHTML = content)
+		.then((content) => {
+			const parser = new DOMParser()
+			const doc = parser.parseFromString(content, "image/svg+xml");
+			wrapper.appendChild(doc.documentElement)
+		})
 	return wrapper;
 }
 
 
-function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.appendChild(document.createTextNode(str));
-    return div.innerHTML;
-}
-
-
+/**
+ * Entry point to the addon, constructs the handlers and makes the tabbed
+ * widget thing.
+ */
 function handleTags(metaTags, tabState) {
 	const popup = document.getElementById('popup-content');
 	const handlers = []
 
 	if (metaTags.length == 0) {
-		popup.innerHTML = "<p><i>No meta tags found.</i></p>";
+		return;
 	}
 
 	popup.innerHTML = '';
@@ -413,10 +449,14 @@ function handleTags(metaTags, tabState) {
 		}
 	}
 
-	const tabs = handlers.map((handler) => handler.tab())
-	new Tabs(tabs, tabState).mount(popup)
+	const tabs = handlers.map((handler) => handler.tab());
+	new Tabs(tabs, tabState).mount(popup);
 }
 
+/*
+ * Fetch the tags from the page, fetch the configuration from storage, and
+ * start the popup.
+ */
 Promise
 	.all([
 		browser.tabs
