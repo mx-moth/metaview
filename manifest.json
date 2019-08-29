@@ -2,7 +2,7 @@
 
 	"manifest_version": 2,
 	"name": "Metaview",
-	"version": "1.0",
+	"version": "1.1",
 
 	"description": "View social meta tags for a website",
 	"homepage_url": "https://github.com/timheap/metaview",
