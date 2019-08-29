@@ -95,7 +95,12 @@ class MetatagFamily extends RenderableMixin(Object) {
 			children: tags.map(({attrs}) => {
 				return el('tr', {children: [
 					el('th', {children: [attrs[name]]}),
-					el('td', {children: [attrs[content]]}),
+					el('td', {
+						children: [attrs[content]],
+						events: {click: (e) => {
+							selectElementText(e.target);
+						}}
+					}),
 				]});
 			}),
 		});
@@ -259,11 +264,17 @@ class OtherTags extends MetatagFamily {
 	render() {
 		return el('table', {
 			classList: 'tag-table',
-			children: this.tagList.map((tag) => el('tr', {
-				children: [el('td', {children: [
-					this.renderHTMLTag('meta', tag)
-				]})],
-			})),
+			children: this.tagList.map((tag) => {
+				let tagEl = this.renderHTMLTag(tag);
+				return el('tr', {children: [el('td', {
+					children: [tagEl],
+					events: {
+						click: (e) => {
+							selectElementText(tagEl);
+						}
+					},
+				})]});
+			}),
 		});
 	}
 }
@@ -461,6 +472,24 @@ function handleTags(metaTags, tabState) {
 
 	const tabs = handlers.map((handler) => handler.tab());
 	new Tabs(tabs, tabState).mount(popup);
+}
+
+
+/**
+ * Selects the text of, and copies the text of, an element
+ */
+function selectElementText(el) {
+	// Clear any current selection
+	const selection = window.getSelection();
+	selection.removeAllRanges();
+
+	// Select paragraph
+	const range = document.createRange();
+	range.selectNodeContents(el);
+	selection.addRange(range);
+
+	// Copy the content to the clipboard anyway
+	navigator.clipboard.writeText(el.innerText);
 }
 
 /*
