@@ -60,7 +60,7 @@ class MetatagFamily extends RenderableMixin(Object) {
 		return el('div', {children: [this.constructor.tabInfo().name]});
 	}
 
-	renderHTMLTag(name, attrs) {
+	renderHTMLTag({tag, text, attrs}) {
 		const attrBits = Object.entries(attrs).reduce((base, bits) => {
 			let name = bits[0];
 			let value = bits[1].replace(/[\\"]/, '\\\0');
@@ -72,9 +72,18 @@ class MetatagFamily extends RenderableMixin(Object) {
 				'"'
 			]);
 		}, []);
+
+		var children = [].concat(['<', tag], attrBits, ['>']);
+
+		if (text) {
+			children = children.concat([
+				el('span', {classList: 'tag--text', children: text}),
+				'</', tag, '>',
+			]);
+		}
+
 		return el('code', {
-			classList: 'tag',
-			children: [].concat(['<', name], attrBits, ['>']),
+			classList: 'tag', children: children
 		});
 	}
 
@@ -83,10 +92,15 @@ class MetatagFamily extends RenderableMixin(Object) {
 		content = (content || 'content');
 		return el('table', {
 			classList: 'tag-table',
-			children: tags.map((tag) => {
+			children: tags.map(({attrs}) => {
 				return el('tr', {children: [
-					el('th', {children: [tag[name]]}),
-					el('td', {children: [tag[content]]}),
+					el('th', {children: [attrs[name]]}),
+					el('td', {
+						children: [attrs[content]],
+						events: {click: (e) => {
+							selectElementText(e.target);
+						}}
+					}),
 				]});
 			}),
 		});
@@ -99,12 +113,12 @@ class FacebookTags extends MetatagFamily {
 		const knownTags = {}
 		const otherTags = [];
 		for (let tag of tagList) {
-			if (tag.property == 'og:title') {
-				knownTags.title = tag.content;
-			} else if (tag.property == 'og:description') {
-				knownTags.description = tag.content;
-			} else if (tag.property == 'og:image') {
-				knownTags.image = tag.content;
+			if (tag.attrs.property == 'og:title') {
+				knownTags.title = tag.attrs.content;
+			} else if (tag.attrs.property == 'og:description') {
+				knownTags.description = tag.attrs.content;
+			} else if (tag.attrs.property == 'og:image') {
+				knownTags.image = tag.attrs.content;
 			} else {
 				otherTags.push(tag);
 			}
@@ -113,9 +127,10 @@ class FacebookTags extends MetatagFamily {
 		this.knownTags = knownTags;
 	}
 
-	static handles(tag) {
-		if (!('property' in tag)) return false;
-		const property = tag['property'];
+	static handles({tag, attrs}) {
+		if (tag != 'meta') return false;
+		if (!('property' in attrs)) return false;
+		const property = attrs['property'];
 		if (property.indexOf('og:') == 0) return true;
 		if (property.indexOf('fb:') == 0) return true;
 		if (property.indexOf('article:') == 0) return true;
@@ -172,12 +187,12 @@ class TwitterTags extends MetatagFamily {
 		const knownTags = {}
 		const otherTags = [];
 		for (let tag of tagList) {
-			if (tag.name == 'twitter:title') {
-				knownTags.title = tag.content;
-			} else if (tag.name == 'twitter:description') {
-				knownTags.description = tag.content;
-			} else if (tag.name == 'twitter:image') {
-				knownTags.image = tag.content;
+			if (tag.attrs.name == 'twitter:title') {
+				knownTags.title = tag.attrs.content;
+			} else if (tag.attrs.name == 'twitter:description') {
+				knownTags.description = tag.attrs.content;
+			} else if (tag.attrs.name == 'twitter:image') {
+				knownTags.image = tag.attrs.content;
 			} else {
 				otherTags.push(tag);
 			}
@@ -186,8 +201,8 @@ class TwitterTags extends MetatagFamily {
 		this.knownTags = knownTags;
 	}
 
-	static handles(tag) {
-		return 'name' in tag && tag['name'].indexOf('twitter:') == 0;
+	static handles({tag, attrs}) {
+		return tag == 'meta' && 'name' in attrs && attrs['name'].indexOf('twitter:') == 0;
 	}
 
 	static tabInfo() {
@@ -249,11 +264,17 @@ class OtherTags extends MetatagFamily {
 	render() {
 		return el('table', {
 			classList: 'tag-table',
-			children: this.tagList.map((tag) => el('tr', {
-				children: [el('td', {children: [
-					this.renderHTMLTag('meta', tag)
-				]})],
-			})),
+			children: this.tagList.map((tag) => {
+				let tagEl = this.renderHTMLTag(tag);
+				return el('tr', {children: [el('td', {
+					children: [tagEl],
+					events: {
+						click: (e) => {
+							selectElementText(tagEl);
+						}
+					},
+				})]});
+			}),
 		});
 	}
 }
@@ -451,6 +472,24 @@ function handleTags(metaTags, tabState) {
 
 	const tabs = handlers.map((handler) => handler.tab());
 	new Tabs(tabs, tabState).mount(popup);
+}
+
+
+/**
+ * Selects the text of, and copies the text of, an element
+ */
+function selectElementText(el) {
+	// Clear any current selection
+	const selection = window.getSelection();
+	selection.removeAllRanges();
+
+	// Select paragraph
+	const range = document.createRange();
+	range.selectNodeContents(el);
+	selection.addRange(range);
+
+	// Copy the content to the clipboard anyway
+	navigator.clipboard.writeText(el.innerText);
 }
 
 /*

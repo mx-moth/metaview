@@ -8,6 +8,7 @@ SOURCES := $(shell find \
 
 LOGO_SIZES := 16 32 48 96
 LOGOS := $(LOGO_SIZES:%=assets/logo-%.png)
+LOGOS_LIGHT :=  $(LOGO_SIZES:%=assets/logo-%-light.png)
 
 .PHONY: all
 all: bundle
@@ -18,7 +19,7 @@ firefox-extension: metaview.zip
 chrome-extension: metaview.zip
 
 .PHONY: logos
-logos: $(LOGOS) extra/chrome-app-logo.png
+logos: $(LOGOS) $(LOGOS_LIGHT) extra/chrome-app-logo.png
 
 metaview.zip: logos $(SOURCES)
 	rm -f $@
@@ -27,6 +28,16 @@ metaview.zip: logos $(SOURCES)
 
 assets/logo-%.png: assets/icons/share.svg
 	inkscape -z -e "$@" -h "$(*F)" "$<" ;
+	gm convert "$@" \
+		-thumbnail "$(*F)x$(*F)>" \
+		-background transparent \
+		-gravity center \
+		-extent "$(*F)x$(*F)" \
+		"$@"
+
+assets/logo-%-light.png: assets/icons/share.svg
+	sed 's!</svg>!<style>*{fill:#FBFBFE;}</style></svg>!' "$<" | \
+	inkscape -z -e "$@" -h "$(*F)" - ;
 	gm convert "$@" \
 		-thumbnail "$(*F)x$(*F)>" \
 		-background transparent \
