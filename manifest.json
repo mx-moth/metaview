@@ -2,7 +2,7 @@
 
 	"manifest_version": 2,
 	"name": "Metaview",
-	"version": "1.1",
+	"version": "1.2",
 
 	"description": "View social meta tags for a website",
 	"homepage_url": "https://github.com/timheap/metaview",
@@ -21,12 +21,34 @@
 
 	"browser_action": {
 		"browser_style": true,
-			"default_icon": {
+		"default_icon": {
 			"16": "assets/logo-16.png",
 			"32": "assets/logo-32.png",
 			"48": "assets/logo-48.png",
 			"96": "assets/logo-96.png"
 		},
+		"theme_icons": [
+			{
+				"light": "assets/logo-16-light.png",
+				"dark": "assets/logo-16.png",
+				"size": 16
+			},
+			{
+				"light": "assets/logo-32-light.png",
+				"dark": "assets/logo-32.png",
+				"size": 32
+			},
+			{
+				"light": "assets/logo-48-light.png",
+				"dark": "assets/logo-48.png",
+				"size": 48
+			},
+			{
+				"light": "assets/logo-96-light.png",
+				"dark": "assets/logo-96.png",
+				"size": 96
+			}
+		],
 		"default_title": "View meta tags",
 		"default_popup": "popup/metaview.html"
 	}
